@@ -3,8 +3,18 @@ use core::any::Any;
 use core::mem;
 use libmessage::{Message, NodeId};
 
+/*
+ * XXX: The real solution to how I want to write this uses GATs, which don't exist yet (see
+ * rust-lang/rust#44265).
+ */
+// pub trait Node {
+//     type MessageType<'de>: Message<'de>;
+
+//     fn message<'de>(&mut self, sender: NodeId, message: Self::MessageType<'de>) -> Result<(), ()>;
+// }
+
 pub trait Node {
-    type MessageType: for<'a> Message<'a>;
+    type MessageType: for<'de> Message<'de>;    // FIXME: This is not the correct type. See comment above
 
     fn message(&mut self, sender: NodeId, message: Self::MessageType) -> Result<(), ()>;
 }
@@ -30,7 +40,7 @@ impl NodeManager {
 
     pub fn add_node<M>(&mut self, node: Box<Node<MessageType = M>>) -> NodeId
     where
-        M: for<'a> Message<'a>,
+        M: for<'de> Message<'de>,
     {
         let id = self.allocate_node_id();
         self.nodes.insert(id, unsafe { upcast_message_type(node) });
@@ -39,7 +49,7 @@ impl NodeManager {
 
     pub fn get_node<M>(&mut self, id: NodeId) -> Option<&mut Box<Node<MessageType = M>>>
     where
-        M: for<'a> Message<'a>,
+        M: for<'de> Message<'de>,
     {
         Some(unsafe { downcast_message_type_ref(self.nodes.get_mut(&id)?) })
     }
@@ -50,7 +60,7 @@ impl NodeManager {
 /// any non-`'static` references.
 unsafe fn upcast_message_type<M>(node: Box<Node<MessageType = M>>) -> Box<Node<MessageType = Any>>
 where
-    M: ?Sized,
+    M: for<'de> Message<'de>,
 {
     mem::transmute(node)
 }
@@ -63,7 +73,7 @@ unsafe fn downcast_message_type_ref<M>(
     node: &mut Box<Node<MessageType = Any>>,
 ) -> &mut Box<Node<MessageType = M>>
 where
-    M: ?Sized,
+    M: for<'de> Message<'de>,
 {
     mem::transmute(node)
 }

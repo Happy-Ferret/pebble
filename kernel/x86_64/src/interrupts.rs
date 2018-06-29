@@ -5,6 +5,7 @@ use idt::Idt;
 use memory::paging::VirtualAddress;
 use port::Port;
 use registers::CpuFlags;
+use process::process_yield_handler;
 
 /*
  * |------------------|-----------------------------|
@@ -304,10 +305,6 @@ extern "C" fn key_handler(_: &InterruptStackFrame) {
     unsafe {
         LOCAL_APIC.send_eoi();
     }
-}
-
-extern "C" fn process_yield_handler(_: &InterruptStackFrame) {
-    info!("Yield from usermode!");
 }
 
 extern "C" fn spurious_handler(_: &InterruptStackFrame) {}

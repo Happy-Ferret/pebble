@@ -6,9 +6,9 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
-pub mod process;
 mod format;
 pub mod kernel;
+pub mod process;
 pub mod serializer;
 
 use core::fmt::Display;
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 /// Each node has a unique ID that can be used to identify it. The raw value can be accessed within
 /// the kernel.
 #[cfg(feature = "kernel")]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct NodeId(pub u16);
 
 /// Each node has a unique ID that can be used to identify it.
@@ -27,6 +27,7 @@ pub struct NodeId(pub u16); // TODO: shouldn't be pub
 
 pub const MAX_PROCESSES: usize = u16::max_value() as usize;
 
+#[cfg_attr(feature = "kernel", derive(Debug))]
 #[repr(C, packed)]
 pub struct MessageHeader {
     pub destination: NodeId,

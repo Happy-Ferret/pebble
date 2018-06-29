@@ -53,7 +53,7 @@ pub use panic::{_Unwind_Resume, panic, rust_eh_personality};
 use acpi_handler::PebbleAcpiHandler;
 use alloc::boxed::Box;
 use gdt::{Gdt, GdtSelectors};
-use kernel::arch::{Architecture, MemoryAddress, ModuleMapping};
+use kernel::arch::{Architecture, ModuleMapping};
 use kernel::fs::File;
 use kernel::node::Node;
 use kernel::process::ProcessMessage;

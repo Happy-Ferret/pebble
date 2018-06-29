@@ -1,10 +1,11 @@
-use alloc::{boxed::Box, Vec};
-use core::{fmt, ptr};
+use alloc::Vec;
+use core::{fmt, ptr, mem, slice};
 use gdt::GdtSelectors;
 use kernel::fs::File;
 use kernel::node::Node;
 use kernel::process::ProcessMessage;
-use libmessage::NodeId;
+use libmessage::{NodeId, MessageHeader, Message};
+use libmessage::process::{SendBuffer, SEND_BUFFER_ADDRESS};
 use memory::paging::{
     ActivePageTable, EntryFlags, InactivePageTable, Page, VirtualAddress, PAGE_SIZE,
 };
@@ -13,6 +14,7 @@ use xmas_elf::{
     program::{SegmentData, Type},
     ElfFile,
 };
+use interrupts::InterruptStackFrame;
 
 pub enum ProcessState {
     NotRunning(InactivePageTable),
@@ -216,15 +218,23 @@ impl Process {
                 ) {
                     mapper.map(
                         stack_page,
-                        EntryFlags::PRESENT | EntryFlags::USER_ACCESSIBLE | EntryFlags::WRITABLE | EntryFlags::NO_EXECUTE,
+                        EntryFlags::PRESENT
+                            | EntryFlags::USER_ACCESSIBLE
+                            | EntryFlags::WRITABLE
+                            | EntryFlags::NO_EXECUTE,
                         allocator,
                     );
                 }
 
                 // Allocate and map the Send Buffer
-                mapper.map(Page::containing_page(::libmessage::process::SEND_BUFFER_ADDRESS.into()),
-                           EntryFlags::PRESENT | EntryFlags::USER_ACCESSIBLE | EntryFlags::WRITABLE | EntryFlags::NO_EXECUTE,
-                           allocator);
+                mapper.map(
+                    Page::containing_page(::libmessage::process::SEND_BUFFER_ADDRESS.into()),
+                    EntryFlags::PRESENT
+                        | EntryFlags::USER_ACCESSIBLE
+                        | EntryFlags::WRITABLE
+                        | EntryFlags::NO_EXECUTE,
+                    allocator,
+                );
 
                 // TODO: Map stuff for the new process
                 //          * The ELF sections - makes up the image
@@ -287,9 +297,7 @@ impl Process {
         self.switch_to(memory_controller);
 
         // TEMP: zero the Send Buffer for Isaac's sanity
-        ::core::intrinsics::volatile_set_memory(0xff_0000_0000 as *mut u8,
-                                                0x00,
-                                                4096);
+        ::core::intrinsics::volatile_set_memory(0xff_0000_0000 as *mut u8, 0x00, 4096);
 
         // Jump into ring3
         asm!("cli
@@ -349,3 +357,37 @@ impl Node for Process {
         }
     }
 }
+
+// TODO: this assumes the process is being nice to us. For example, the kernel would crash if the
+// payload length leads to past the end of the Send Buffer (and so isn't mapped). We should harden
+// this, and maybe automatically fuzz it at some point to make sure it's not exploitable.
+pub extern "C" fn process_yield_handler(_: &InterruptStackFrame) {
+    info!("Yield from usermode!");
+
+    // TEMP: Print tail of Send Buffer
+    let send_buffer = unsafe { SendBuffer::new() };
+    let mut buffer_offset = 0;
+
+    while buffer_offset < send_buffer.buffer_tail {
+        let header = unsafe { &*((SEND_BUFFER_ADDRESS + mem::size_of::<SendBuffer>() + buffer_offset as usize) as *const MessageHeader) };
+        buffer_offset += mem::size_of::<MessageHeader>() as u16;
+        info!("Header: {:?}", header);
+
+        let payload = unsafe { slice::from_raw_parts((SEND_BUFFER_ADDRESS + mem::size_of::<SendBuffer>() + buffer_offset as usize) as *const u8, header.payload_length as usize) };
+        buffer_offset += header.payload_length;
+        info!("Payload: {:?}", payload);
+    }
+}
+
+// TODO: this needs the new node framework, which needs GATs :(
+// fn dispatch_message<'de, M>(data: &'de [u8], node: &impl Node<MessageType=M>) -> Result<(), ::libmessage::Error>
+// where
+//     M: Message<'de>
+// {
+        // if let Ok(message) = ::libmessage::deserializer::from_bytes<KernelMessage>(payload) {
+        //     // TODO: get the kernel node and message it
+        // } else {
+        //     // TODO: tell the process off for being a bad message-sender
+        //     error!("Process sent malformed message to kernel");
+        // }
+// }

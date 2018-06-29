@@ -5,6 +5,7 @@
 #![feature(string_retain)]
 #![feature(pattern)]
 #![feature(box_syntax)]
+#![feature(generic_associated_types)]
 
 extern crate alloc;
 extern crate bit_field;
@@ -29,7 +30,7 @@ pub use arch::Architecture;
 use alloc::rc::Rc;
 use allocator::LockedHoleAllocator;
 use fs::{ramdisk::Ramdisk, FileManager};
-use libmessage::{kernel::KernelMessage, Message, MessageHeader, NodeId};
+use libmessage::{kernel::KernelMessage, NodeId};
 use node::{Node, NodeManager};
 use process::ProcessMessage;
 
@@ -82,7 +83,8 @@ where
     node_manager
         .get_node(test_process_id)
         .unwrap()   // TODO: handle proplerly
-        .message(NodeId(0), ProcessMessage::DropToUsermode); // TODO: use kernel's node id
+        .message(NodeId(0), ProcessMessage::DropToUsermode) // TODO: use kernel's node id
+        .unwrap();
 
     loop {}
 }
