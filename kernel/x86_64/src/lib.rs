@@ -1,18 +1,22 @@
 #![no_std]
-#![feature(lang_items)]
-#![feature(asm)]
-#![feature(const_fn)]
-#![feature(naked_functions)]
-#![feature(core_intrinsics)]
-#![feature(alloc)]
-#![feature(type_ascription)]
-#![feature(allocator_api)]
-#![feature(panic_info_message)]
-#![feature(extern_prelude)]
-#![feature(alloc_error_handler)]
+#![feature(
+    lang_items,
+    asm,
+    const_fn,
+    naked_functions,
+    core_intrinsics,
+    alloc,
+    type_ascription,
+    allocator_api,
+    panic_info_message,
+    alloc_error_handler,
+    global_asm,
+)]
 #![allow(unknown_lints)]
 #![allow(identity_op)]
 #![allow(new_without_default)]
+
+global_asm!(include_str!("bootstrap.s"));
 
 extern crate alloc;
 extern crate spin;

@@ -8,16 +8,18 @@ ASM_OBJS:=$(patsubst src/%.s, $(BUILD_DIR)/$(ARCH)/%.o, $(ASM_SOURCES))
 
 .PHONY: kernel clean
 
-$(BUILD_DIR)/kernel.bin: $(ASM_OBJS) kernel $(LINKER_SCRIPT)
+# $(BUILD_DIR)/kernel.bin: $(ASM_OBJS) kernel $(LINKER_SCRIPT)
+$(BUILD_DIR)/kernel.bin: kernel $(LINKER_SCRIPT)
 	mkdir -p $(BUILD_DIR)/iso/boot/grub
-	ld $(LFLAGS) -o $@ $(ASM_OBJS) ../target/$(TARGET)/debug/lib$(ARCH).a
+	ld $(LFLAGS) -o $@ ../target/$(TARGET)/debug/lib$(ARCH).a
+	# ld $(LFLAGS) -o $@ $(ASM_OBJS) ../target/$(TARGET)/debug/lib$(ARCH).a
 
 kernel:
 	cargo xbuild --target=$(TARGET).json
 
-$(BUILD_DIR)/$(ARCH)%.o: src%.s
-	mkdir -p $(shell dirname $@)
-	nasm $(ASM_FLAGS) $< -o $@
+# $(BUILD_DIR)/$(ARCH)%.o: src%.s
+# 	mkdir -p $(shell dirname $@)
+# 	nasm $(ASM_FLAGS) $< -o $@
 
 clean:
 	rm -f $(ASM_OBJS)
