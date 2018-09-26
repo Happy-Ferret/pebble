@@ -1,3 +1,8 @@
+# This is currently broken, as the page tables don't seem to be correct (specificially the identity
+# mapping seems to be missing. The reason for this hasn't been found yet. So that needs to be fixed
+# and then we should be able to remove the dependency on NASM as far as I can see.
+# We should also make all the sections that don't need to be writable just "a" or "ax"
+
 .section .multiboot, "awx"
 .intel_syntax noprefix
 .code32
